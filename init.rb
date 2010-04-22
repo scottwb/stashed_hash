@@ -1,0 +1,1 @@
+require 'stashed_hash'
