@@ -189,12 +189,18 @@ module StashedHash
         #
         #     obj.stash['sports']['baseball']['stats']['RBIs']
         #
-        # +block+::
-        #   The block to invoke to modify the data. This block takes
-        #   in the current value and returns the new value to set.
-        #   IMPORTANT: This block sure have no side-effects, as it may
-        #   be executed multiple times if necessary to resolve mid-air
-        #   collisions.
+        # +func+::
+        #   A lambda Proc function to invoke to modify the data.
+        #   This Proc takes in the current value and returns the new value
+        #   to nest set. IMPORTANT: This block should have no side-effects,
+        #   as it may be executed multiple times if necessary to resolve
+        #   mid-air collisions.
+        #
+        #   REVISIT: It would be ideal to make this a regular block to
+        #            the method, and that all works great...on Ruby 1.8.7 or
+        #            later. In order to keep this working on 1.8.6,
+        #            we had to make this take an explictly-created
+        #            lambda Proc as a formal parameter.
         #
         # ====Returns
         #
@@ -214,16 +220,19 @@ module StashedHash
         #
         #       # Record more more RBI for this player.
         #       def record_baseball_rbi
-        #         self.stash.modify_data('sports/baseball/stats/RBIs') do |v|
-        #           v + 1
-        #         end
+        #         self.stash.modify_data(
+        #           'sports/baseball/stats/RBIs',
+        #           lambda do |v|
+        #             v + 1
+        #           end
+        #         )
         #       end
         #     end
         #
-        define_method("modify_#{col_name}".to_sym) do |key, &block|
+        define_method("modify_#{col_name}".to_sym) do |key, func|
           value = self.send("get_#{col_name}", key)
           if value
-            self.send("set_#{col_name}", key, block.call(value))
+            self.send("set_#{col_name}", key, func.call(value))
           else
             raise "#{key.inspect} must be set before if can be modified"
           end
@@ -267,28 +276,15 @@ module StashedHash
         # Will raise an exception if the specified key is not already set
         # and non-nil.
         #
-        # ====Examples
-        #
-        #     class Player < ActiveRecord::Base
-        #       stashed_hash :stash
-        #
-        #       ...
-        #
-        #       # Record more more RBI for this player.
-        #       def record_baseball_rbi
-        #         self.stash.modify_data('sports/baseball/stats/RBIs') do |v|
-        #           v + 1
-        #         end
-        #       end
-        #     end
-        #
         define_method("inc_#{col_name}".to_sym) do |key, *optional_delta|
           if optional_delta.size > 1
             raise ArgumentError, "wrong number of arguments (#{optional_delta.size + 1} for 2)"
           end
-          self.send("modify_#{col_name}", key) do |v|
-            v + (optional_delta.first || 1)
-          end
+          self.send(
+            "modify_#{col_name}",
+            key,
+            lambda{|v| v + (optional_delta.first || 1)}
+          )
         end
       end
     end
