@@ -30,14 +30,20 @@ module StashedHash
         :initial => {}
       }
       configuration.update(options) if options.is_a?(Hash)
-
-      col_spec = self.columns.find{|c| c.name.to_s == col_name.to_s}
-      if col_spec.nil?
-        raise "#{col_name.inspect} is not a valid column for #{self.name}"
-      end
-      if col_spec.type != :text
-        raise "#{col_name.inspect} is not a :text column"
-      end
+      
+      # REVISIT: This code to validate the columns is problematic because
+      #          running the migration to add this column when the code
+      #          that calls this already exists, will always fail. I am
+      #          just commenting this out for now until I have some time
+      #          to think of a better way to do some run-time validation.
+      #
+      #col_spec = self.columns.find{|c| c.name.to_s == col_name.to_s}
+      #if col_spec.nil?
+      #  raise "#{col_name.inspect} is not a valid column for #{self.name}"
+      #end
+      #if col_spec.type != :text
+      #  raise "#{col_name.inspect} is not a :text column"
+      #end
 
       class_eval do
         serialize col_name, Hash
