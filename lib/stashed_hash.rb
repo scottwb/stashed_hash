@@ -294,6 +294,77 @@ module StashedHash
         end
       end
     end
+
+    # Dynamically creates reader and writer methods for an attribute that
+    # is persisted in the stashed_hash instead of as a column. Note that
+    # the genererated writer methods will immediate save the value into
+    # the stashed_hash column in the database, thus no additional
+    # call to ActiveRecord::Base#save is required.
+    #
+    # ====Parameters
+    #
+    # +col_name+::
+    #   The column name of the stashed_hash in which to persist the
+    #   attribute. (This is necessary since a given class may use more
+    #   than one stashed_hash column.)
+    #
+    # +key+::
+    #   The attribute key at which to store the attribute in the stashed_hash.
+    #
+    # +options+::
+    #   An optional Hash of options, supporting the following members:
+    #
+    #     :default => The default value to return from the reader method
+    #                 if the attribute is not yet found in the stashed_hash.
+    #                 Defaults to nil.
+    #
+    #     :type => If set to :boolean, then an accessor ending with a
+    #              question mark is also created, which coerces the returend
+    #              value to true or false. Values other than :boolean are
+    #              currently ignored.
+    #
+    # ====Returns
+    #
+    # None.
+    #
+    # ====Examples
+    #
+    #   class User < ActiveRecord::Base
+    #     stashed_hash     :data
+    #     stashed_accessor :data, :friend_ids, :default => []
+    #     stashed_accessor :data, :private,    :type => :boolean
+    #   end
+    #
+    #   user = User.create(...)
+    #   user.friend_ids              # => []
+    #   user.friend_ids = [1,2,3]
+    #   user.friend_ids              # => [1,2,3]
+    #   user.private?                # => false
+    #   user.private = true
+    #   user.private?                # => true
+    #
+    def stash_accessor(col_name, key, options = {})
+      config = {
+        :default => nil
+      }
+      config.update(options) if options.is_a?(Hash)
+      
+      class_eval do
+        define_method("#{key}=") do |val|
+          self.send("set_#{col_name}", key, val)
+        end
+          
+        define_method(key) do
+          self.send("get_#{col_name}", key) || config[:default]
+        end
+
+        if config[:type] == :boolean
+          define_method("#{key}?") do
+            !!self.send(key)
+          end
+        end
+      end
+    end
   end
 
   # REVISIT: These ought to be optimized to be iterative, not need
