@@ -331,8 +331,8 @@ module StashedHash
     #
     #   class User < ActiveRecord::Base
     #     stashed_hash     :data
-    #     stashed_accessor :data, :friend_ids, :default => []
-    #     stashed_accessor :data, :private,    :type => :boolean
+    #     stash_accessor   :data, :friend_ids, :default => []
+    #     stash_accessor   :data, :private,    :type => :boolean
     #   end
     #
     #   user = User.create(...)
