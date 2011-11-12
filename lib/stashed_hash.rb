@@ -51,6 +51,7 @@ module StashedHash
         before_create do |obj|
           if obj.send(col_name).nil?
             obj.send("#{col_name}=", configuration[:initial])
+            obj.send("#{col_name}_will_change!")
           end
           true
         end
@@ -118,6 +119,7 @@ module StashedHash
           return nil if hash.nil? || !hash.is_a?(Hash)
           value = hash.stash_nested_delete(key)
           self.send("#{col_name}=", hash)
+          self.send("#{col_name}_will_change!")
           self.save!
           value
         end
@@ -167,6 +169,7 @@ module StashedHash
           hash = (self.send(col_name) || {})
           hash.stash_nested_set(key, value)
           self.send("#{col_name}=", hash)
+          self.send("#{col_name}_will_change!")
           self.save!
           value
         end
